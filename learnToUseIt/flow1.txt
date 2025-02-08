@@ -1,0 +1,33 @@
+✅ 1. Framework:
+
+    Usaremos Tkinter para la interfaz gráfica, ya que Django es más adecuado para aplicaciones web y no tanto para visualización de simulaciones en tiempo real.
+
+✅ 2. Parámetros de usuario:
+
+    Número de simulaciones a ejecutar.
+    Número de iteraciones por simulación.
+    Probabilidad de propagación del fuego.
+    Efecto del viento (dirección e intensidad).
+    Cantidad de obstáculos en el bosque.
+
+✅ 3. Datos a capturar en cada simulación:
+
+    Número total de árboles quemados.
+    Número de iteraciones hasta que el fuego se extingue.
+    Número de iteraciones hasta que TODO el bosque es consumido.
+    Tamaño del incendio más grande registrado.
+
+✅ 4. Almacenamiento de resultados:
+
+    Guardaremos los datos en un archivo CSV (fácil de analizar y expandible a una base de datos en el futuro).
+
+✅ 5. Ejecución paralela:
+
+    Usaremos multiprocessing para ejecutar múltiples simulaciones en paralelo y mejorar la eficiencia.
+
+✅ 6. Flujo del programa:
+
+    El usuario introduce los parámetros en la interfaz gráfica (Tkinter).
+    Se ejecutan múltiples simulaciones en paralelo con multiprocessing.
+    Se guardan los resultados en un archivo CSV.
+    Se muestra un resumen en la interfaz y se ofrece la opción de visualizar gráficas de los resultados.
