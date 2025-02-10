@@ -23,5 +23,5 @@ soil_temperature_0_to_7cm,True
 soil_temperature_7_to_28cm,True
 
 Simulation,Burnt Trees,Iterations to Extinguish,Max Fire Size
-0,3,2,1
+0,4,3,2
 1,4,3,2

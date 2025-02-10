@@ -48,7 +48,7 @@ def visualize_simulation(history, G, id):
                   for node in G.nodes()]
         nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
         ax.set_title(f"Step {frame + 1} Simulation {id + 1}")
-        if  frame + 1 == len(history) :
+        if  frame + 1 == len(history) and 1 == 1 :
             ani.event_source.stop()           
             plt.close()
 

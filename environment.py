@@ -2,12 +2,14 @@ import networkx as nx
 # import numpy as np
 import random
 from config import GRID_SIZE, INITIAL_FIRE_POINTS
+from calculation import calculate_general_probability
+
 
 # This could be on the config File, by know just leave it here
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
 
 
-def generate_forest(grid_size=GRID_SIZE):
+def generate_forest(grid_size=GRID_SIZE, weather_data=None):
     """Generates a random forest with obstacles."""
     rows, cols = grid_size
 
@@ -21,7 +23,14 @@ def generate_forest(grid_size=GRID_SIZE):
         initial_fire = (i, j)
         states[initial_fire] = FIRE
 
+    # Calculate general probability if weather data is provided
+    prob_general = 0.5  # Default probability
+    if weather_data and 1 == 2:
+        prob_general = calculate_general_probability(weather_data)
+        print("Esta es la probabilidad General")
+        print(prob_general)
     
-    return G, states
+    return G, states, prob_general
+    
 
 

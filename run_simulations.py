@@ -14,23 +14,9 @@ def execute_simulation(simulation_id, forest, forest_state,prob_spread,num_itera
     history = simulation.run_simulation(simulation_id,forest, forest_state, prob_spread, num_iterations)
     
     output = getAnalysisFromResult(history)
-    # Analizar resultados
-    # burnt_trees = sum(1 for state in history[-1].values() if state == "burnt")
-    # total_steps = len(history)
-    # full_burn_steps = next((i for i, state in enumerate(history) if all(v == "burnt" or v == "empty" for v in state.values())), total_steps)
-    # max_fire_size = max(sum(1 for v in state.values() if v == "fire") for state in history)
-
-    # output = {
-    #     "history": history,
-    #     "simulation_id": simulation_id,
-    #     "burnt_trees": burnt_trees,
-    #     "total_steps": total_steps,
-    #     "full_burn_steps": full_burn_steps,
-    #     "max_fire_size": max_fire_size
-    # }
 
 
-    return output
+    return (simulation_id,*output)
 
 def execute_simulations(params):
     """

@@ -10,8 +10,8 @@ end_date,2015-02-10
 location,Chingaza National Park
 display_simulations,True
 auto_close_simulations,True
-custom_csv_name,False
-csv_name,results.csv
+custom_csv_name,True
+csv_name,results_firsttest.csv
 simulation_mode,hourly
 
 Hourly Parameters
@@ -23,5 +23,5 @@ soil_temperature_0_to_7cm,True
 soil_temperature_7_to_28cm,True
 
 Simulation,Burnt Trees,Iterations to Extinguish,Max Fire Size
-0,3,2,1
+0,6,4,3
 1,4,3,2
