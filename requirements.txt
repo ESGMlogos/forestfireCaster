@@ -1,1 +1,5 @@
 requests
+python-dateutil
+matplotlib
+networkx
+tkinter
