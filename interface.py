@@ -21,7 +21,7 @@ class FireSimulationApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Forest Fire Simulation")
-        self.root.geometry("1080x630")  # Set the window size to 1200x800 pixels
+        self.root.geometry("1270x630")  # Set the window size to 1200x800 pixels
 
         # Variables de entrada
         self.num_simulations = tk.IntVar(value=2)
@@ -65,88 +65,117 @@ class FireSimulationApp:
         self.create_widgets()
 
     def create_widgets(self):
-        # Configurar el grid principal
+        # Configure the main grid
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_columnconfigure(1, weight=3)
 
-        # Columna izquierda (Controles de entrada)
-        left_frame = ttk.Frame(self.root, padding=10)
-        left_frame.grid(row=0, column=0, sticky="ns")
+        # Create a main frame with a scrollbar
+        main_canvas = tk.Canvas(self.root)
+        main_scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
+        main_scrollable_frame = ttk.Frame(main_canvas)
 
-        ttk.Label(left_frame, text="Number of Simulations:").grid(row=0, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.num_simulations).grid(row=0, column=1, sticky="ew")
+        main_scrollable_frame.bind(
+            "<Configure>",
+            lambda e: main_canvas.configure(
+                scrollregion=main_canvas.bbox("all")
+            )
+        )
 
-        ttk.Label(left_frame, text="Iterations per Simulation:").grid(row=1, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.num_iterations).grid(row=1, column=1, sticky="ew")
+        main_canvas.create_window((0, 0), window=main_scrollable_frame, anchor="nw")
+        main_canvas.configure(yscrollcommand=main_scrollbar.set)
 
-        ttk.Label(left_frame, text="Fire Spread Probability:").grid(row=2, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.prob_spread).grid(row=2, column=1, sticky="ew")
+        main_canvas.pack(side="left", fill="both", expand=True)
+        main_scrollbar.pack(side="right", fill="y")
 
-        ttk.Label(left_frame, text="Wind Direction:").grid(row=3, column=0, sticky="w")
-        ttk.Combobox(left_frame, textvariable=self.wind_direction, values=["None", "North", "South", "East", "West"]).grid(row=3, column=1, sticky="ew")
+        # Left Column
+        left_frame = ttk.Frame(main_scrollable_frame)
+        left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        ttk.Label(left_frame, text="Wind Intensity:").grid(row=4, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.wind_intensity).grid(row=4, column=1, sticky="ew")
+        # Input Parameters Block
+        input_frame = ttk.LabelFrame(left_frame, text="Simulation Parameters", padding=10)
+        input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        ttk.Label(left_frame, text="Number of Obstacles:").grid(row=5, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.num_obstacles).grid(row=5, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Number of Simulations:").grid(row=0, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.num_simulations).grid(row=0, column=1, sticky="ew")
 
-        ttk.Label(left_frame, text="Start Date:").grid(row=6, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.start_date).grid(row=6, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Iterations per Simulation:").grid(row=1, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.num_iterations).grid(row=1, column=1, sticky="ew")
 
-        ttk.Label(left_frame, text="End Date:").grid(row=7, column=0, sticky="w")
-        ttk.Entry(left_frame, textvariable=self.end_date).grid(row=7, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Fire Spread Probability:").grid(row=2, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.prob_spread).grid(row=2, column=1, sticky="ew")
 
-        ttk.Label(left_frame, text="Location:").grid(row=8, column=0, sticky="w")
-        self.location_combobox = ttk.Combobox(left_frame, textvariable=self.location)
+        ttk.Label(input_frame, text="Wind Direction:").grid(row=3, column=0, sticky="w")
+        ttk.Combobox(input_frame, textvariable=self.wind_direction, values=["None", "North", "South", "East", "West"]).grid(row=3, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="Wind Intensity:").grid(row=4, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.wind_intensity).grid(row=4, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="Number of Obstacles:").grid(row=5, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.num_obstacles).grid(row=5, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="Start Date:").grid(row=6, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.start_date).grid(row=6, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="End Date:").grid(row=7, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.end_date).grid(row=7, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="Location:").grid(row=8, column=0, sticky="w")
+        self.location_combobox = ttk.Combobox(input_frame, textvariable=self.location)
         self.location_combobox.grid(row=8, column=1, sticky="ew")
         self.load_locations()
 
-        ttk.Button(left_frame, text="Add Location", command=self.add_location).grid(row=8, column=2, sticky="ew")
+        ttk.Button(input_frame, text="Add Location", command=self.add_location).grid(row=8, column=2, sticky="ew")
 
-        ttk.Checkbutton(left_frame, text="Display Simulations", variable=self.display_simulations).grid(row=9, column=0, columnspan=2, sticky="w")
-        ttk.Checkbutton(left_frame, text="Simulations not to close automatically", variable=self.auto_close_simulations).grid(row=10, column=0, columnspan=2, sticky="w")
-        ttk.Checkbutton(left_frame, text="Custom CSV Name", variable=self.custom_csv_name, command=self.toggle_csv_name_entry).grid(row=11, column=0, columnspan=2, sticky="w")
-        self.csv_name_entry = ttk.Entry(left_frame, textvariable=self.csv_name, state="disabled")
+        ttk.Checkbutton(input_frame, text="Display Simulations", variable=self.display_simulations).grid(row=9, column=0, columnspan=2, sticky="w")
+        ttk.Checkbutton(input_frame, text="Simulations not to close automatically", variable=self.auto_close_simulations).grid(row=10, column=0, columnspan=2, sticky="w")
+        ttk.Checkbutton(input_frame, text="Custom CSV Name", variable=self.custom_csv_name, command=self.toggle_csv_name_entry).grid(row=11, column=0, columnspan=2, sticky="w")
+        self.csv_name_entry = ttk.Entry(input_frame, textvariable=self.csv_name, state="disabled")
         self.csv_name_entry.grid(row=12, column=0, columnspan=2, sticky="ew")
 
-        ttk.Label(left_frame, text="Simulation Mode:").grid(row=13, column=0, sticky="w")
-        ttk.Radiobutton(left_frame, text="Hourly", variable=self.simulation_mode, value="hourly").grid(row=13, column=1, sticky="w")
-        ttk.Radiobutton(left_frame, text="Daily", variable=self.simulation_mode, value="daily").grid(row=13, column=2, sticky="w")
+        ttk.Label(input_frame, text="Simulation Mode:").grid(row=13, column=0, sticky="w")
+        ttk.Radiobutton(input_frame, text="Hourly", variable=self.simulation_mode, value="hourly").grid(row=13, column=1, sticky="w")
+        ttk.Radiobutton(input_frame, text="Daily", variable=self.simulation_mode, value="daily").grid(row=13, column=2, sticky="w")
 
-        # Create a frame for hourly and daily parameters
-        params_frame = ttk.Frame(left_frame)
-        params_frame.grid(row=14, column=0, columnspan=3, sticky="ew")
-
-        # Hourly Parameters
-        hourly_frame = ttk.Frame(params_frame)
-        hourly_frame.grid(row=0, column=0, sticky="nsew", padx=5)
-        ttk.Label(hourly_frame, text="Hourly Parameters", font=("Helvetica", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=5)
-        for i, (param, var) in enumerate(self.hourly_params.items()):
-            ttk.Checkbutton(hourly_frame, text=param.replace("_", " ").title(), variable=var).grid(row=1+i, column=0, columnspan=2, sticky="w")
-
-        # Daily Parameters
-        daily_frame = ttk.Frame(params_frame)
-        daily_frame.grid(row=0, column=1, sticky="nsew", padx=5)
-        ttk.Label(daily_frame, text="Daily Parameters", font=("Helvetica", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=5)
-        for i, (param, var) in enumerate(self.daily_params.items()):
-            ttk.Checkbutton(daily_frame, text=param.replace("_", " ").title(), variable=var).grid(row=1+i, column=0, columnspan=2, sticky="w")
-
-        ttk.Button(left_frame, text="Run Simulations", command=self.run_simulations).grid(row=15+max(len(self.hourly_params), len(self.daily_params)), column=0, columnspan=3, pady=10, sticky="ew")
+        
+        ttk.Button(left_frame, text="Run Simulations", command=self.run_simulations).grid(row=1, column=0, pady=10, sticky="ew")
 
         self.result_label = ttk.Label(left_frame, text="")
-        self.result_label.grid(row=16+max(len(self.hourly_params), len(self.daily_params)), column=0, columnspan=3, sticky="ew")
+        self.result_label.grid(row=2, column=0, pady=10, sticky="ew")
 
-        # Columna derecha (Visualización de resultados y gráficos)
-        right_frame = ttk.Frame(self.root, padding=10)
-        right_frame.grid(row=0, column=1, sticky="nsew")
+        # Weather Parameters Block
+        params_frame = ttk.LabelFrame(left_frame, text="Weather Parameters", padding=10)
+        params_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
-        right_frame.grid_rowconfigure(0, weight=1)
-        right_frame.grid_columnconfigure(0, weight=1)
+        # Hourly Parameters
+        hourly_frame = ttk.LabelFrame(params_frame, text="Hourly Parameters", padding=10)
+        hourly_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        for i, (param, var) in enumerate(self.hourly_params.items()):
+            ttk.Checkbutton(hourly_frame, text=param.replace("_", " ").title(), variable=var).grid(row=i, column=0, sticky="w")
 
-        self.result_frame = ttk.Frame(right_frame)
+        # Daily Parameters
+        daily_frame = ttk.LabelFrame(params_frame, text="Daily Parameters", padding=10)
+        daily_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        for i, (param, var) in enumerate(self.daily_params.items()):
+            ttk.Checkbutton(daily_frame, text=param.replace("_", " ").title(), variable=var).grid(row=i, column=0, sticky="w")
+
+        # Weather Information Block
+        weather_info_frame = ttk.LabelFrame(left_frame, text="Weather Information", padding=10)
+        weather_info_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
+
+        self.weather_info_label = ttk.Label(weather_info_frame, text="", font=("Helvetica", 10))
+        self.weather_info_label.grid(row=0, column=0, sticky="w")
+
+        # Right Column
+        right_frame = ttk.Frame(main_scrollable_frame)
+        right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+
+        # Simulation Results Block
+        results_frame = ttk.LabelFrame(right_frame, text="Simulation Results", padding=10)
+        results_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+        self.result_frame = ttk.Frame(results_frame)
         self.result_frame.grid(row=0, column=0, sticky="nsew")
+
 
     def load_locations(self):
         # Load locations from a CSV file
@@ -193,14 +222,22 @@ class FireSimulationApp:
         if response.status_code == 200:
             try:
                 self.weather_data = response.json()
+                self.weather_info = {
+                    "latitude": self.weather_data["latitude"],
+                    "longitude": self.weather_data["longitude"],
+                    "timezone": self.weather_data["timezone"],
+                    "elevation": self.weather_data["elevation"]
+                }
                 print("Weather data fetched successfully")
             except ValueError:
                 print("Failed to parse weather data")
                 self.weather_data = None
+                self.weather_info = None
         else:
             print("Failed to fetch weather data")
             self.weather_data = None
-    
+            self.weather_info = None
+
     def run_simulations(self):
         self.result_label.config(text="Running simulations...")
         self.root.update_idletasks()
@@ -230,6 +267,8 @@ class FireSimulationApp:
         latitude, longitude = self.get_location_coordinates(location)
         # self.fetch_weather_data(latitude, longitude, params["start_date"], params["end_date"], params["hourly_params"], params["daily_params"])
 
+        # self.display_weather_info()
+
         if self.weather_data:
             G, states, prob_general = generate_forest(GRID_SIZE, self.weather_data)
             params["prob_spread"] = prob_general
@@ -241,13 +280,12 @@ class FireSimulationApp:
    
 
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())  # Usa todos los núcleos disponibles
-        tasks = [(i,G,states,params["prob_spread"],params["num_iterations"]) for i in range(params["num_simulations"])]
+        # tasks = [(i,G,states,params["prob_spread"],params["num_iterations"]) for i in range(params["num_simulations"])]
+        tasks = [(i,G,states,params,self.weather_data) for i in range(params["num_simulations"])]
         results = pool.starmap(execute_simulation, tasks)
         pool.close()
         pool.join()
         
-        print("he llegado aqui 8")
-        print(results)
         # pool = multiprocessing.Pool()
         # # graphs = [(i,G,states,params["prob_spread"],params["num_iterations"]) for i, result in enumerate(results)]
         # graphs = [(result['history'],G,i) for i, result in enumerate(results)]
@@ -340,6 +378,18 @@ class FireSimulationApp:
 
         self.result_label.config(text="Simulations completed. Results saved in results.csv")
         messagebox.showinfo("Success", "Simulations result saved on the csv file!")
+
+    def display_weather_info(self):
+        if self.weather_info:
+            info_text = (
+                f"Latitude: {self.weather_info['latitude']}\n"
+                f"Longitude: {self.weather_info['longitude']}\n"
+                f"Timezone: {self.weather_info['timezone']}\n"
+                f"Elevation: {self.weather_info['elevation']} meters"
+            )
+            self.weather_info_label.config(text=info_text)
+        else:
+            self.weather_info_label.config(text="No weather information available.")
 if __name__ == "__main__":
     root = tk.Tk()
     app = FireSimulationApp(root)

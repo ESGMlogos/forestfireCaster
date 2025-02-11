@@ -1,0 +1,27 @@
+Parameter,Value
+num_simulations,2
+num_iterations,100
+prob_spread,0.4
+wind_direction,None
+wind_intensity,0.0
+num_obstacles,10
+start_date,2015-02-10
+end_date,2015-02-11
+location,Chingaza National Park
+display_simulations,True
+auto_close_simulations,True
+custom_csv_name,False
+csv_name,results.csv
+simulation_mode,hourly
+
+Hourly Parameters
+temperature_2m,True
+relative_humidity_2m,True
+wind_speed_10m,True
+wind_direction_10m,True
+soil_temperature_0_to_7cm,True
+soil_temperature_7_to_28cm,True
+
+Simulation,Burnt Trees,Iterations to Extinguish,Max Fire Size
+0,62,13,47
+1,112,27,107

@@ -4,23 +4,28 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import random
 import time
+from calculation import calculate_specific_probability
 
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
 G = None
 states = None
 spread = None
 simulation = None
-def spread_fire(states, G, spread):
+def spread_fire(states, G, spread,weather_data):
     new_states = states.copy()
     fire_nodes = [node for node, state in states.items() if state == FIRE]
     for node in fire_nodes:
         for neighbor in G.neighbors(node):
-            if states[neighbor] == TREE and random.random() < spread:
+            specific_spread = spread
+            if weather_data and 1 == 2:
+                specific_spread = calculate_specific_probability(weather_data, neighbor)
+
+            if states[neighbor] == TREE and random.random() < specific_spread:
                 new_states[neighbor] = FIRE
         new_states[node] = ASH
     return new_states
 
-def run_simulation(id,forest, forestStates, prob_spread=0.5, max_steps=100):
+def run_simulation(forest, forestStates, prob_spread=0.5, max_steps=100,weather_data=None):
     global G, states, spread, simulation   
     G = forest
     states = forestStates
@@ -28,15 +33,17 @@ def run_simulation(id,forest, forestStates, prob_spread=0.5, max_steps=100):
     history = [states.copy()]
 
     for _ in range(max_steps):
-        states = spread_fire(states, G, spread)
+        states = spread_fire(states, G, spread,weather_data)
         history.append(states.copy())
         if all(state != FIRE for state in states.values()):
             break
 
-    visualize_simulation(history,G,id)
     return history
 
-def visualize_simulation(history, G, id):
+def visualize_simulation(history, G, id,params):
+    print("Hemos llegado a la simulacions")
+    print(params["auto_close_simulations"])
+    print(params)
     fig, ax = plt.subplots()
     pos = {(x, y): (x, -y) for x, y in G.nodes()}
 
@@ -48,7 +55,7 @@ def visualize_simulation(history, G, id):
                   for node in G.nodes()]
         nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
         ax.set_title(f"Step {frame + 1} Simulation {id + 1}")
-        if  frame + 1 == len(history) and 1 == 1 :
+        if  frame + 1 == len(history) and params["auto_close_simulations"]:
             ani.event_source.stop()           
             plt.close()
 

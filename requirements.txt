@@ -3,3 +3,4 @@ python-dateutil
 matplotlib
 networkx
 tkinter
+numpy

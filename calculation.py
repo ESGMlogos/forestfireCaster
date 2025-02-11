@@ -26,3 +26,31 @@ def calculate_general_probability(weather_data):
     probability = max(0.0, min(1.0, probability))
 
     return probability
+def calculate_specific_probability(weather_data, position):
+    """
+    Calculate the specific probability of fire spread for a tree based on weather data and its position.
+    """
+    # Example weights for each parameter (these can be adjusted)
+    weights = {
+        "temperature_2m": 0.3,
+        "relative_humidity_2m": -0.2,
+        "wind_speed_10m": 0.4,
+        "soil_temperature_0_to_7cm": 0.1,
+        "soil_temperature_7_to_28cm": 0.1
+    }
+
+    # Initialize probability
+    probability = 0.0
+
+    # Calculate weighted sum of parameters for the specific position
+    if "hourly" in weather_data:
+        for param, weight in weights.items():
+            if param in weather_data["hourly"]:
+                # Use the value of the parameter at the specific position
+                value = weather_data["hourly"][param][position]
+                probability += weight * value
+
+    # Ensure probability is within [0, 1] range
+    probability = max(0.0, min(1.0, probability))
+
+    return probability
