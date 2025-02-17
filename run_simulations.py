@@ -15,8 +15,7 @@ def execute_simulation(simulation_id, forest, forest_state, params, wheather_dat
     output = getAnalysisFromResult(history)
     
     if params["display_simulations"]: 
-        visualize_params = { "auto_close_simulations" : params["auto_close_simulations"] }
-        simulation.visualize_simulation(history,forest,simulation_id,visualize_params)
+        simulation.visualize_simulation(history,forest,simulation_id,params,wheather_data)
     
 
     return (simulation_id,*output)

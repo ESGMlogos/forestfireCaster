@@ -40,10 +40,7 @@ def run_simulation(forest, forestStates, prob_spread=0.5, max_steps=100,weather_
 
     return history
 
-def visualize_simulation(history, G, id,params):
-    print("Hemos llegado a la simulacions")
-    print(params["auto_close_simulations"])
-    print(params)
+def visualize_simulation(history, G, id, params, weather_data=None):
     fig, ax = plt.subplots()
     pos = {(x, y): (x, -y) for x, y in G.nodes()}
 
@@ -55,13 +52,30 @@ def visualize_simulation(history, G, id,params):
                   for node in G.nodes()]
         nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
         ax.set_title(f"Step {frame + 1} Simulation {id + 1}")
-        if  frame + 1 == len(history) and params["auto_close_simulations"]:
-            ani.event_source.stop()           
+
+        # Display weather parameters
+        if weather_data:
+            if params["simulation_mode"] == "hourly":
+                time_index = frame % len(weather_data["hourly"]["time"])
+                time = weather_data["hourly"]["time"][time_index]
+                temperature = weather_data["hourly"]["temperature_2m"][time_index]
+                wind_speed = weather_data["hourly"]["wind_speed_10m"][time_index]
+                wind_direction = weather_data["hourly"]["wind_direction_10m"][time_index]
+                ax.text(0.05, 0.95, f"Time: {time}\nTemperature: {temperature}°C\nWind Speed: {wind_speed} km/h\nWind Direction: {wind_direction}°",
+                        transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+            elif params["simulation_mode"] == "daily":
+                time_index = frame % len(weather_data["daily"]["time"])
+                time = weather_data["daily"]["time"][time_index]
+                temperature = weather_data["daily"]["apparent_temperature_min"][time_index]
+                ax.text(0.05, 0.95, f"Date: {time}\nMin Temperature: {temperature}°C",
+                        transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+
+        if frame + 1 == len(history) and params["auto_close_simulations"]:
+            ani.event_source.stop()
             plt.close()
 
     ani = animation.FuncAnimation(fig, update, frames=len(history), interval=10, repeat=False)
     plt.show()
-
 
 # def run_simulation(id,forest, forestStates, prob_spread=0.6, max_steps=100):
 #     print("he llegado aqui 4")

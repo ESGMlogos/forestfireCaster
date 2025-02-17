@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import tkinter as tk
+import random
 import networkx as nx
 from tkinter import ttk, messagebox
 import multiprocessing
@@ -30,8 +31,8 @@ class FireSimulationApp:
         self.wind_direction = tk.StringVar(value="None")
         self.wind_intensity = tk.DoubleVar(value=0.0)
         self.num_obstacles = tk.IntVar(value=10)
-        self.start_date = tk.StringVar(value=(datetime.now() - relativedelta(years=10)).strftime("%Y-%m-%d"))
-        self.end_date = tk.StringVar(value=(datetime.now() - relativedelta(years=10) + timedelta(days=1)).strftime("%Y-%m-%d"))
+        self.start_date = tk.StringVar(value=(datetime.now() - relativedelta(years=33)).strftime("%Y-%m-%d"))
+        self.end_date = tk.StringVar(value=(datetime.now() - relativedelta(years=33) + timedelta(days=9)).strftime("%Y-%m-%d"))
         self.location = tk.StringVar()
         self.display_simulations = tk.BooleanVar(value=True)
         self.auto_close_simulations = tk.BooleanVar(value=True)
@@ -58,6 +59,16 @@ class FireSimulationApp:
         }
 
         self.weather_data = None  # Variable to store weather data
+
+        self.forest_rows = tk.IntVar(value=10)
+        self.forest_columns = tk.IntVar(value=10)
+        self.num_fire_points = tk.IntVar(value=2)
+        self.fire_points_rows = [tk.IntVar(value=1),tk.IntVar(value=2),tk.IntVar(value=3),tk.IntVar(value=4),tk.IntVar(value=5)]
+        self.fire_points_cols = [tk.IntVar(value=1),tk.IntVar(value=2),tk.IntVar(value=3),tk.IntVar(value=4),tk.IntVar(value=5)]
+
+        self.new_location_name = tk.StringVar(value="")
+        self.new_location_latitude = tk.StringVar(value="")
+        self.new_location_longitude = tk.StringVar(value="")
 
         print("he llegado aqui 7")
 
@@ -96,56 +107,114 @@ class FireSimulationApp:
         input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         ttk.Label(input_frame, text="Number of Simulations:").grid(row=0, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.num_simulations).grid(row=0, column=1, sticky="ew")
+        self.simulations_entry = ttk.Entry(input_frame, textvariable=self.num_simulations)
+        self.simulations_entry.grid(row=0, column=1, sticky="ew")
 
-        ttk.Label(input_frame, text="Iterations per Simulation:").grid(row=1, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.num_iterations).grid(row=1, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Iterations per Simulation:").grid(row=0, column=2, sticky="w")
+        self.iterations_entry = ttk.Entry(input_frame, textvariable=self.num_iterations)
+        self.iterations_entry.grid(row=0, column=3, sticky="ew")
 
         ttk.Label(input_frame, text="Fire Spread Probability:").grid(row=2, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.prob_spread).grid(row=2, column=1, sticky="ew")
+        self.spread_prob_entry = ttk.Entry(input_frame, textvariable=self.prob_spread)
+        self.spread_prob_entry.grid(row=2, column=1, sticky="ew")
 
-        ttk.Label(input_frame, text="Wind Direction:").grid(row=3, column=0, sticky="w")
-        ttk.Combobox(input_frame, textvariable=self.wind_direction, values=["None", "North", "South", "East", "West"]).grid(row=3, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Number of Obstacles:").grid(row=4, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.num_obstacles).grid(row=4, column=1, sticky="ew")
 
-        ttk.Label(input_frame, text="Wind Intensity:").grid(row=4, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.wind_intensity).grid(row=4, column=1, sticky="ew")
+        ttk.Label(input_frame, text="Start Date:").grid(row=5, column=0, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.start_date).grid(row=5, column=1, sticky="ew")
 
-        ttk.Label(input_frame, text="Number of Obstacles:").grid(row=5, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.num_obstacles).grid(row=5, column=1, sticky="ew")
+        ttk.Label(input_frame, text="End Date:").grid(row=5, column=0 + 2, sticky="w")
+        ttk.Entry(input_frame, textvariable=self.end_date).grid(row=5, column=1 + 2, sticky="ew")
 
-        ttk.Label(input_frame, text="Start Date:").grid(row=6, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.start_date).grid(row=6, column=1, sticky="ew")
-
-        ttk.Label(input_frame, text="End Date:").grid(row=7, column=0, sticky="w")
-        ttk.Entry(input_frame, textvariable=self.end_date).grid(row=7, column=1, sticky="ew")
-
-        ttk.Label(input_frame, text="Location:").grid(row=8, column=0, sticky="w")
+        ttk.Label(input_frame, text="Location:").grid(row=6, column=0, sticky="w")
         self.location_combobox = ttk.Combobox(input_frame, textvariable=self.location)
-        self.location_combobox.grid(row=8, column=1, sticky="ew")
+        self.location_combobox.grid(row=6, column=1, pady=3, sticky="ew")
         self.load_locations()
 
-        ttk.Button(input_frame, text="Add Location", command=self.add_location).grid(row=8, column=2, sticky="ew")
+        ttk.Button(input_frame, text="Add Location", command=self.show_add_location_fields).grid(row=6, column=2, columnspan=2, sticky="ew")
 
-        ttk.Checkbutton(input_frame, text="Display Simulations", variable=self.display_simulations).grid(row=9, column=0, columnspan=2, sticky="w")
-        ttk.Checkbutton(input_frame, text="Simulations not to close automatically", variable=self.auto_close_simulations).grid(row=10, column=0, columnspan=2, sticky="w")
-        ttk.Checkbutton(input_frame, text="Custom CSV Name", variable=self.custom_csv_name, command=self.toggle_csv_name_entry).grid(row=11, column=0, columnspan=2, sticky="w")
+        # Row 7: Labels for name, latitude, longitude, and save button
+        self.name_label = ttk.Label(input_frame, text="Name:")
+        self.latitude_label = ttk.Label(input_frame, text="Latitude:")
+        self.longitude_label = ttk.Label(input_frame, text="Longitude:")
+        self.save_button = ttk.Button(input_frame, text="Save", command=self.add_location)
+
+        # Row 8: Input fields for name, latitude, and longitude
+        self.name_entry = ttk.Entry(input_frame, textvariable=self.new_location_name)
+        self.latitude_entry = ttk.Entry(input_frame, textvariable=self.new_location_latitude)
+        self.longitude_entry = ttk.Entry(input_frame, textvariable=self.new_location_longitude)
+
+        self.hide_add_location_fields()    
+
+        ttk.Label(input_frame, text="Forest Size:").grid(row=9, column=0, pady=1, columnspan=4, sticky="w")
+        ttk.Label(input_frame, text="Rows:").grid(row=10, column=0, sticky="w")
+        self.forest_rows_entry = ttk.Entry(input_frame, textvariable=self.forest_rows)
+        self.forest_rows_entry.grid(row=10, column=1, sticky="ew")
+
+        ttk.Label(input_frame, text="Columns:").grid(row=10, column=2, sticky="w")
+        self.forest_columns_entry = ttk.Entry(input_frame, textvariable=self.forest_columns)
+        self.forest_columns_entry.grid(row=10, column=3, sticky="ew")
+
+
+        # Number of Fire Starting Points
+        ttk.Label(input_frame, text="").grid(row=11, column=0, sticky="w")
+        ttk.Label(input_frame, text="Number of Fire Starting Points:").grid(row=12, column=0, sticky="w")
+        self.num_fire_points_combobox = ttk.Combobox(input_frame, textvariable=self.num_fire_points, values=[1, 2, 3, 4, 5])
+        self.num_fire_points_combobox.grid(row=12, column=1, columnspan=2,sticky="ew")
+        self.num_fire_points_combobox.bind("<<ComboboxSelected>>", self.update_fire_points_entries)
+
+        # Fire Starting Points Entries (initially hidden)
+        self.fire_points_entries = []
+        for i in range(5):
+            initial_row = random.randint(0, self.forest_rows.get() - 1)
+            initial_col = random.randint(0, self.forest_columns.get() - 1)
+            self.fire_points_rows[i].set(initial_row)
+            self.fire_points_cols[i].set(initial_col)
+
+            label = ttk.Label(input_frame, text=f"Fire Point {i+1} :")
+            row_entry = ttk.Entry(input_frame, textvariable=self.fire_points_rows[i])
+            col_entry = ttk.Entry(input_frame, textvariable=self.fire_points_cols[i])
+            self.fire_points_entries.append((label, row_entry, col_entry))
+        
+
+        ttk.Checkbutton(input_frame, text="Display Simulations", variable=self.display_simulations).grid(row=21, column=2, columnspan=2, sticky="w")
+        ttk.Checkbutton(input_frame, text="Simulations not to close automatically", variable=self.auto_close_simulations).grid(row=21, column=0, columnspan=2, sticky="w")
+        ttk.Checkbutton(input_frame, text="Custom CSV Name", variable=self.custom_csv_name, command=self.toggle_csv_name_entry).grid(row=19, column=0, columnspan=2, sticky="w")
         self.csv_name_entry = ttk.Entry(input_frame, textvariable=self.csv_name, state="disabled")
-        self.csv_name_entry.grid(row=12, column=0, columnspan=2, sticky="ew")
+        self.csv_name_entry.grid(row=19, column=1, columnspan=2, sticky="ew")
 
-        ttk.Label(input_frame, text="Simulation Mode:").grid(row=13, column=0, sticky="w")
-        ttk.Radiobutton(input_frame, text="Hourly", variable=self.simulation_mode, value="hourly").grid(row=13, column=1, sticky="w")
-        ttk.Radiobutton(input_frame, text="Daily", variable=self.simulation_mode, value="daily").grid(row=13, column=2, sticky="w")
+        self.use_api_data = tk.BooleanVar()
+        ttk.Checkbutton(input_frame, text="Use API Data Simulation", variable=self.use_api_data, command=self.toggle_spread_prob_entry).grid(row=20, column=0, columnspan=2, sticky="w")
 
+        self.overtime = tk.BooleanVar()
+        ttk.Checkbutton(input_frame, text="Over the time", variable=self.overtime, command=self.toggle_iterations_entry).grid(row=20, column=2, columnspan=2, sticky="w")
+
+        self.random_fire_start = tk.BooleanVar()
+        self.random_fire_start = tk.BooleanVar()
+        ttk.Checkbutton(input_frame, text="Randomized Fire Starting Point", variable=self.random_fire_start, command=self.toggle_fire_points_entries).grid(row=18, column=0, columnspan=2, pady=5, sticky="w")
+
+        ttk.Label(input_frame, text="Simulation Mode:").grid(row=23, column=0, sticky="w")
+        ttk.Radiobutton(input_frame, text="Hourly", variable=self.simulation_mode, value="hourly").grid(row=23, column=1, sticky="w")
+        ttk.Radiobutton(input_frame, text="Daily", variable=self.simulation_mode, value="daily").grid(row=23, column=2, sticky="w")
+            
         
         ttk.Button(left_frame, text="Run Simulations", command=self.run_simulations).grid(row=1, column=0, pady=10, sticky="ew")
+        
 
+        self.update_fire_points_entries(self)
+
+        
+
+        
+        
+        
         self.result_label = ttk.Label(left_frame, text="")
         self.result_label.grid(row=2, column=0, pady=10, sticky="ew")
 
         # Weather Parameters Block
         params_frame = ttk.LabelFrame(left_frame, text="Weather Parameters", padding=10)
         params_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
-
         # Hourly Parameters
         hourly_frame = ttk.LabelFrame(params_frame, text="Hourly Parameters", padding=10)
         hourly_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
@@ -158,24 +227,60 @@ class FireSimulationApp:
         for i, (param, var) in enumerate(self.daily_params.items()):
             ttk.Checkbutton(daily_frame, text=param.replace("_", " ").title(), variable=var).grid(row=i, column=0, sticky="w")
 
-        # Weather Information Block
-        weather_info_frame = ttk.LabelFrame(left_frame, text="Weather Information", padding=10)
-        weather_info_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
-
-        self.weather_info_label = ttk.Label(weather_info_frame, text="", font=("Helvetica", 10))
-        self.weather_info_label.grid(row=0, column=0, sticky="w")
 
         # Right Column
         right_frame = ttk.Frame(main_scrollable_frame)
         right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
+        # Weather Information Block
+        weather_info_frame = ttk.LabelFrame(right_frame, text="Weather Information", padding=10)
+        weather_info_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+
+        self.weather_info_label = ttk.Label(weather_info_frame, text="", font=("Helvetica", 10))
+        self.weather_info_label.grid(row=0, column=0, sticky="w")
+
         # Simulation Results Block
         results_frame = ttk.LabelFrame(right_frame, text="Simulation Results", padding=10)
-        results_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        results_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         self.result_frame = ttk.Frame(results_frame)
         self.result_frame.grid(row=0, column=0, sticky="nsew")
 
+
+    def toggle_fire_points_entries(self):
+        if self.random_fire_start.get():
+            state="disabled"
+        else:
+            state="normal"
+
+        for widgets in self.fire_points_entries:
+            for widget in widgets:
+                widget.config(state=state)
+
+    def update_fire_points_entries(self, event):
+        if not self.random_fire_start.get():
+            for widgets in self.fire_points_entries:
+                for widget in widgets:
+                    widget.grid_remove()
+
+            num_points = int(self.num_fire_points.get())
+            for i in range(num_points):
+                self.fire_points_entries[i][0].grid(row=13 + i, column=0, sticky="w")
+                self.fire_points_entries[i][1].grid(row=13 + i, column=1, sticky="ew")
+                self.fire_points_entries[i][2].grid(row=13 + i, column=2, sticky="w")
+
+
+    def toggle_iterations_entry(self):
+        if self.overtime.get():
+            self.iterations_entry.config(state="disabled")
+        else:
+            self.iterations_entry.config(state="normal")
+
+    def toggle_spread_prob_entry(self):
+        if self.use_api_data.get():
+            self.spread_prob_entry.config(state="disabled")
+        else:
+            self.spread_prob_entry.config(state="normal")
 
     def load_locations(self):
         # Load locations from a CSV file
@@ -189,14 +294,38 @@ class FireSimulationApp:
         except FileNotFoundError:
             self.location_combobox["values"] = []
 
+    def show_add_location_fields(self):
+        self.name_label.grid(row=7, column=0, sticky="w")
+        self.latitude_label.grid(row=7, column=1, sticky="w")
+        self.longitude_label.grid(row=7, column=2, sticky="w")
+
+        self.name_entry.grid(row=8, column=0, sticky="ew")
+        self.latitude_entry.grid(row=8, column=1, sticky="ew")
+        self.longitude_entry.grid(row=8, column=2, sticky="ew")
+        self.save_button.grid(row=8, column=3, sticky="ew")
+
+    def hide_add_location_fields(self):
+        self.name_label.grid_remove()
+        self.latitude_label.grid_remove()
+        self.longitude_label.grid_remove()
+        self.save_button.grid_remove()
+
+        self.name_entry.grid_remove()
+        self.latitude_entry.grid_remove()
+        self.longitude_entry.grid_remove()
+
     def add_location(self):
         # Add a new location to the CSV file
-        new_location = self.location.get()
-        if new_location:
+        new_location_name = self.new_location_name.get()
+        new_location_latitude = self.new_location_latitude.get()
+        new_location_longitude = self.new_location_longitude.get()
+
+        if new_location_name and new_location_latitude and new_location_longitude:
             with open("locations.csv", "a", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow([new_location])
+                writer.writerow([new_location_name, new_location_latitude, new_location_longitude])
             self.load_locations()
+            self.hide_add_location_fields()
 
     def toggle_csv_name_entry(self):
         if self.custom_csv_name.get():
@@ -259,19 +388,27 @@ class FireSimulationApp:
             "csv_name": self.csv_name.get(),
             "simulation_mode": self.simulation_mode.get(),
             "hourly_params": {k: v.get() for k, v in self.hourly_params.items()},
-            "daily_params": {k: v.get() for k, v in self.daily_params.items()}
+            "daily_params": {k: v.get() for k, v in self.daily_params.items()},
+            "use_api_data": self.use_api_data.get(),
+            "overtime": self.overtime.get(),
+            "random_fire_start": self.random_fire_start.get(),
+            "forest_rows": self.forest_rows.get(),
+            "forest_columns": self.forest_columns.get(),
+            "num_fire_points": self.num_fire_points.get(),
+            "fire_points": [(self.fire_points_rows[i].get(), self.fire_points_cols[i].get()) for i in range(self.num_fire_points.get())]
         }
-
+        
         # Fetch weather data
         location = self.location.get()
         latitude, longitude = self.get_location_coordinates(location)
-        # self.fetch_weather_data(latitude, longitude, params["start_date"], params["end_date"], params["hourly_params"], params["daily_params"])
+        self.fetch_weather_data(latitude, longitude, params["start_date"], params["end_date"], params["hourly_params"], params["daily_params"])
 
-        # self.display_weather_info()
+        self.display_weather_info()
 
         if self.weather_data:
             G, states, prob_general = generate_forest(GRID_SIZE, self.weather_data)
-            params["prob_spread"] = prob_general
+            # params["prob_spread"] = prob_general
+            params["prob_spread"] = self.prob_spread.get()
         else:
             G, states, prob_general = generate_forest(GRID_SIZE,None)
             params["prob_spread"] = self.prob_spread.get()
