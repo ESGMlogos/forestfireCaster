@@ -15,6 +15,8 @@ from config import GRID_SIZE
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import os
+import csv
 
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
 
@@ -38,6 +40,9 @@ class FireSimulationApp:
         self.auto_close_simulations = tk.BooleanVar(value=True)
         self.custom_csv_name = tk.BooleanVar(value=False)
         self.csv_name = tk.StringVar(value="results.csv")
+        self.use_api_data = tk.BooleanVar(value=True)
+        self.overtime = tk.BooleanVar(value=False)
+        self.random_fire_start = tk.BooleanVar(value=False)
         self.simulation_mode = tk.StringVar(value="hourly")
         self.hourly_params = {
             "temperature_2m": tk.BooleanVar(value=True),
@@ -60,8 +65,11 @@ class FireSimulationApp:
 
         self.weather_data = None  # Variable to store weather data
 
-        self.forest_rows = tk.IntVar(value=10)
-        self.forest_columns = tk.IntVar(value=10)
+        ini_row, ini_col = GRID_SIZE
+        self.forest_rows = tk.IntVar(value=ini_row)
+        self.forest_columns = tk.IntVar(value=ini_col)
+
+
         self.num_fire_points = tk.IntVar(value=2)
         self.fire_points_rows = [tk.IntVar(value=1),tk.IntVar(value=2),tk.IntVar(value=3),tk.IntVar(value=4),tk.IntVar(value=5)]
         self.fire_points_cols = [tk.IntVar(value=1),tk.IntVar(value=2),tk.IntVar(value=3),tk.IntVar(value=4),tk.IntVar(value=5)]
@@ -184,14 +192,13 @@ class FireSimulationApp:
         self.csv_name_entry = ttk.Entry(input_frame, textvariable=self.csv_name, state="disabled")
         self.csv_name_entry.grid(row=19, column=1, columnspan=2, sticky="ew")
 
-        self.use_api_data = tk.BooleanVar()
+        
         ttk.Checkbutton(input_frame, text="Use API Data Simulation", variable=self.use_api_data, command=self.toggle_spread_prob_entry).grid(row=20, column=0, columnspan=2, sticky="w")
 
-        self.overtime = tk.BooleanVar()
+        
         ttk.Checkbutton(input_frame, text="Over the time", variable=self.overtime, command=self.toggle_iterations_entry).grid(row=20, column=2, columnspan=2, sticky="w")
 
-        self.random_fire_start = tk.BooleanVar()
-        self.random_fire_start = tk.BooleanVar()
+        
         ttk.Checkbutton(input_frame, text="Randomized Fire Starting Point", variable=self.random_fire_start, command=self.toggle_fire_points_entries).grid(row=18, column=0, columnspan=2, pady=5, sticky="w")
 
         ttk.Label(input_frame, text="Simulation Mode:").grid(row=23, column=0, sticky="w")
@@ -397,42 +404,49 @@ class FireSimulationApp:
             "num_fire_points": self.num_fire_points.get(),
             "fire_points": [(self.fire_points_rows[i].get(), self.fire_points_cols[i].get()) for i in range(self.num_fire_points.get())]
         }
-        
+
         # Fetch weather data
+        self.weather_data = None
         location = self.location.get()
         latitude, longitude = self.get_location_coordinates(location)
-        self.fetch_weather_data(latitude, longitude, params["start_date"], params["end_date"], params["hourly_params"], params["daily_params"])
-
+        if params["use_api_data"]:
+            self.fetch_weather_data(latitude, longitude, params["start_date"], params["end_date"], params["hourly_params"], params["daily_params"])        
         self.display_weather_info()
 
-        if self.weather_data:
-            G, states, prob_general = generate_forest(GRID_SIZE, self.weather_data)
+        forestWheater = self.weather_data
+        forestSize = (params["forest_rows"], params["forest_columns"]) 
+        G, states, prob_general = generate_forest(forestSize, forestWheater,params)
+
+        if forestWheater:
             # params["prob_spread"] = prob_general
-            params["prob_spread"] = self.prob_spread.get()
-        else:
-            G, states, prob_general = generate_forest(GRID_SIZE,None)
             params["prob_spread"] = self.prob_spread.get()
 
         # Ejecutar en paralelo
-   
-
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())  # Usa todos los núcleos disponibles
-        # tasks = [(i,G,states,params["prob_spread"],params["num_iterations"]) for i in range(params["num_simulations"])]
         tasks = [(i,G,states,params,self.weather_data) for i in range(params["num_simulations"])]
         results = pool.starmap(execute_simulation, tasks)
         pool.close()
         pool.join()
         
-        # pool = multiprocessing.Pool()
-        # # graphs = [(i,G,states,params["prob_spread"],params["num_iterations"]) for i, result in enumerate(results)]
-        # graphs = [(result['history'],G,i) for i, result in enumerate(results)]
-        # pool.apply_async(visualize_simulation, (graphs,))
-        # pool.close()
-        # pool.join()
+        # Create directories for results
+        # Determine the CSV file name
+        if not self.custom_csv_name.get():
+            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            params["csv_name"] = f"results_{current_time}"
+
+        csv_folder = "CSVs"
+        simulation_folder = os.path.join(csv_folder, params["csv_name"])
+        last_iteration_folder = os.path.join(simulation_folder, "LastIteration")
+        image_folder = os.path.join(simulation_folder, "Image")
+
+        os.makedirs(last_iteration_folder, exist_ok=True)
+        os.makedirs(image_folder, exist_ok=True)
 
         # Guardar resultados
         # analitycs = getAnalysisFromResults(results)
-        self.save_results(results,params)
+        # Save results
+        self.display_results(results, params)
+        self.save_results(results, params, last_iteration_folder, image_folder,G)
 
         self.result_label.config(text="Simulations completed. Results saved in results.csv")
         messagebox.showinfo("Success", "Simulations completed!")
@@ -446,8 +460,58 @@ class FireSimulationApp:
         return None, None
 
 
-    def save_results(self, results, params):
-        # Clear the existing results section
+    def save_results(self, results, params, last_iteration_folder, image_folder,forest):
+
+        general_params = ["num_simulations", "num_iterations", "prob_spread", "wind_direction", "wind_intensity", "num_obstacles", "start_date", "end_date", "location", "display_simulations", "auto_close_simulations", "custom_csv_name", "csv_name", "simulation_mode"]
+        headers = ["Simulation", "Burnt Trees", "Iterations to Extinguish", "Max Fire Size"]
+
+        for result in results:
+            output, final_forest = result["results"], result["Finalforest"]
+            simulation_id = output[0]        
+            # Save final iteration
+            final_iteration_file = os.path.join(last_iteration_folder, f"final_iteration_{simulation_id}.csv")
+            with open(final_iteration_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                for row in final_forest:
+                    writer.writerow(row)
+
+            # Save image of the last simulation
+            image_file = os.path.join(image_folder, f"simulation_{simulation_id}.png")
+            visualize_simulation([final_forest], forest, simulation_id, params, self.weather_data, save_path=image_file)
+
+        
+        csv_file_name = params["csv_name"] + ".csv"
+        results_file = os.path.join("CSVs", params["csv_name"], csv_file_name)
+        # Save the parameters and results to a CSV file
+        with open(results_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Parameter", "Value"])
+            for key in general_params:
+                if key in params:
+                    writer.writerow([key, params[key]])
+            writer.writerow([])  # Add an empty row for separation
+            if params["simulation_mode"] == "hourly":
+                writer.writerow(["Hourly Parameters"])
+                for key, value in params["hourly_params"].items():
+                    writer.writerow([key, value])
+            elif params["simulation_mode"] == "daily":
+                writer.writerow(["Daily Parameters"])
+                for key, value in params["daily_params"].items():
+                    writer.writerow([key, value])
+            writer.writerow([])  # Add an empty row for separation
+            writer.writerow(headers)
+            writer.writerows(results)
+
+        self.result_label.config(text="Simulations completed. Results saved in results.csv")
+        messagebox.showinfo("Success", "Simulations result saved on the csv file!")
+
+
+    def display_results(self,results, params):
+                # Clear the existing results section
+        data = []
+        for result in results:
+            data.append(result)
+
         for widget in self.result_frame.winfo_children():
             widget.destroy()
 
@@ -486,35 +550,6 @@ class FireSimulationApp:
             for j, value in enumerate(result):
                 ttk.Label(self.result_frame, text=value).grid(row=len(general_params)+4+i, column=j, padx=5, pady=5)
 
-        # Determine the CSV file name
-        if self.custom_csv_name.get():
-            csv_file_name = params["csv_name"]
-        else:
-            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            csv_file_name = f"results_{current_time}.csv"
-
-        # Save the parameters and results to a CSV file
-        with open(csv_file_name, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Parameter", "Value"])
-            for key in general_params:
-                if key in params:
-                    writer.writerow([key, params[key]])
-            writer.writerow([])  # Add an empty row for separation
-            if params["simulation_mode"] == "hourly":
-                writer.writerow(["Hourly Parameters"])
-                for key, value in params["hourly_params"].items():
-                    writer.writerow([key, value])
-            elif params["simulation_mode"] == "daily":
-                writer.writerow(["Daily Parameters"])
-                for key, value in params["daily_params"].items():
-                    writer.writerow([key, value])
-            writer.writerow([])  # Add an empty row for separation
-            writer.writerow(headers)
-            writer.writerows(results)
-
-        self.result_label.config(text="Simulations completed. Results saved in results.csv")
-        messagebox.showinfo("Success", "Simulations result saved on the csv file!")
 
     def display_weather_info(self):
         if self.weather_info:

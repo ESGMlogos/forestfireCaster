@@ -40,13 +40,13 @@ def run_simulation(forest, forestStates, prob_spread=0.5, max_steps=100,weather_
 
     return history
 
-def visualize_simulation(history, G, id, params, weather_data=None):
+def visualize_simulation(history, G, id, params, weather_data=None, save_path=None):
     fig, ax = plt.subplots()
-    pos = {(x, y): (x, -y) for x, y in G.nodes()}
+    pos = {(x, y): (y, -x) for x, y in G.nodes()}
 
     def update(frame):
         ax.clear()
-        colors = ["white" if history[frame][node] == EMPTY else
+        colors = ["grey" if history[frame][node] == EMPTY else
                   "green" if history[frame][node] == TREE else
                   "red" if history[frame][node] == FIRE else "black"
                   for node in G.nodes()]
@@ -61,65 +61,22 @@ def visualize_simulation(history, G, id, params, weather_data=None):
                 temperature = weather_data["hourly"]["temperature_2m"][time_index]
                 wind_speed = weather_data["hourly"]["wind_speed_10m"][time_index]
                 wind_direction = weather_data["hourly"]["wind_direction_10m"][time_index]
-                ax.text(0.05, 0.95, f"Time: {time}\nTemperature: {temperature}°C\nWind Speed: {wind_speed} km/h\nWind Direction: {wind_direction}°",
-                        transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+                fig.text(0.5, 0.01, f"Time: {time} | Temperature: {temperature}°C | Wind Speed: {wind_speed} km/h | Wind Direction: {wind_direction}°",
+                         ha='center', fontsize=10, bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
             elif params["simulation_mode"] == "daily":
                 time_index = frame % len(weather_data["daily"]["time"])
                 time = weather_data["daily"]["time"][time_index]
                 temperature = weather_data["daily"]["apparent_temperature_min"][time_index]
-                ax.text(0.05, 0.95, f"Date: {time}\nMin Temperature: {temperature}°C",
-                        transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+                fig.text(0.5, 0.01, f"Date: {time} | Min Temperature: {temperature}°C",
+                         ha='center', fontsize=10, bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
 
         if frame + 1 == len(history) and params["auto_close_simulations"]:
             ani.event_source.stop()
             plt.close()
 
     ani = animation.FuncAnimation(fig, update, frames=len(history), interval=10, repeat=False)
-    plt.show()
-
-# def run_simulation(id,forest, forestStates, prob_spread=0.6, max_steps=100):
-#     print("he llegado aqui 4")
-#     global G, states, spread
-#     G = forest
-#     states = forestStates
-#     spread = prob_spread
-#     fig, ax = plt.subplots()
-#     pos = {(x, y): (x, -y) for x, y in G.nodes()}
-#     def update(frame):
-#         global states
-#         if all(state != FIRE for state in states.values()):
-#             ani.event_source.stop()
-#             plt.close()
-#         ax.clear()
-#         colors = ["white" if states[node] == EMPTY else
-#         "green" if states[node] == TREE else
-#         "red" if states[node] == FIRE else "black"
-#         for node in G.nodes()]
-#         nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
-#         ax.set_title(f"Step {frame + 1} Simulation {id + 1}")
-#         states = spread_fire(states)
-#         if  frame + 1 == max_steps :
-#             ani.event_source.stop()           
-#             plt.close()
-        
-
-#     ani = animation.FuncAnimation(fig, update, frames=max_steps, interval=20,repeat=False)
-    
-#     plt.show()
-#     print("he llegado aqui")
-
-
-# def spread_fire(states):
-#     new_states = states.copy()
-#     burning_trees = [node for node, state in states.items() if state == FIRE]
-    
-#     if not burning_trees:    
-#         return states  # Stop if no trees are burning
-
-#     for node in burning_trees:
-#         if states[node] == FIRE:
-#             for neighbor in G.neighbors(node):
-#                 if states[neighbor] == TREE and random.random() < spread:
-#                     new_states[neighbor] = FIRE
-#             new_states[node] = ASH  # Se convierte en ceniza después de quemarse
-#     return new_states
+    if save_path:
+        ani.save(save_path)
+        plt.close()
+    else:
+        plt.show()

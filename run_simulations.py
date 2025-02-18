@@ -18,4 +18,7 @@ def execute_simulation(simulation_id, forest, forest_state, params, wheather_dat
         simulation.visualize_simulation(history,forest,simulation_id,params,wheather_data)
     
 
-    return (simulation_id,*output)
+    return {
+        "results": (simulation_id, *output),
+        "Finalforest": history[-1]
+    }
