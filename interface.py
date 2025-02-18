@@ -9,7 +9,7 @@ import csv
 import requests
 from run_simulations import execute_simulation
 from environment import generate_forest
-from simulation import run_simulation
+from simulation import save_simulation
 from simulation import visualize_simulation
 from config import GRID_SIZE
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -477,7 +477,7 @@ class FireSimulationApp:
 
             # Save image of the last simulation
             image_file = os.path.join(image_folder, f"simulation_{simulation_id}.png")
-            visualize_simulation([final_forest], forest, simulation_id, params, self.weather_data, save_path=image_file)
+            save_simulation([final_forest], forest, simulation_id, save_path=image_file)
 
         
         csv_file_name = params["csv_name"] + ".csv"

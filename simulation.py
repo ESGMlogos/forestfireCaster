@@ -76,7 +76,26 @@ def visualize_simulation(history, G, id, params, weather_data=None, save_path=No
 
     ani = animation.FuncAnimation(fig, update, frames=len(history), interval=10, repeat=False)
     if save_path:
-        ani.save(save_path)
+        # Save the last frame as an image
+        update(len(history) - 1)
+        plt.savefig(save_path)
         plt.close()
     else:
         plt.show()
+
+
+def save_simulation(history, G, id, save_path=None):
+    # Create a new figure for the last frame
+    fig, ax = plt.subplots()
+    pos = {(x, y): (y, -x) for x, y in G.nodes()}
+    colors = ["grey" if history[-1][node] == EMPTY else
+              "green" if history[-1][node] == TREE else
+              "red" if history[-1][node] == FIRE else "black"
+              for node in G.nodes()]
+    nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
+    ax.set_title(f"Final State Simulation {id + 1}")
+
+    # Save the plot
+    if save_path:
+        plt.savefig(save_path)
+    plt.close()
