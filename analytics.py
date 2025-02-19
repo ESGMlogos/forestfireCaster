@@ -1,3 +1,5 @@
+import json
+import os
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
 
 def getAnalysisFromResult(history):
@@ -39,3 +41,48 @@ def getBurntNeighbors(burnt_trees,tree):
      neighbors = [(row + 1, column), (row - 1, column),(row, column + 1), (row, column - 1)]
      burnt_neighbors = [node for node in neighbors if node in burnt_trees]
      return burnt_neighbors
+
+
+
+def read_final_forest(file_path):
+    with open(file_path, "r") as f:
+        final_forest_str_keys = json.load(f)
+    
+    # Convert keys back to tuples
+    final_forest = {eval(key): value for key, value in final_forest_str_keys.items()}
+    return final_forest
+
+def collect_final_forests(csv_name):
+    # Determine the folder name
+    simulation_folder = os.path.join("CSVs", csv_name, "LastIteration")
+
+    # Initialize an array to store all final forests
+    final_forests = []
+
+    # Iterate over each file in the folder
+    for file_name in os.listdir(simulation_folder):
+        if file_name.endswith(".txt"):
+            file_path = os.path.join(simulation_folder, file_name)
+            final_forest = read_final_forest(file_path)
+            final_forests.append(final_forest)
+
+    return final_forests
+
+def generate_heat_map(final_forests):
+    # Initialize the heat map with zeros
+    heat_map = {}
+
+    # Iterate over each final forest
+    for final_forest in final_forests:
+        for node, state in final_forest.items():
+               if state == FIRE or state == ASH:  # Consider burnt nodes
+                    if node not in heat_map:
+                         heat_map[node] = 0
+                    heat_map[node] += 1
+               elif state == EMPTY:
+                    if node not in heat_map:
+                         heat_map[node] = 0
+                    heat_map[node] -= 1
+          
+
+    return heat_map

@@ -1,6 +1,6 @@
 
 # Sise of the Forest
-GRID_SIZE = (9, 9)
+GRID_SIZE = (33, 33)
 
 # Fire spread Factors
 BASE_SPREAD_PROB = 0.3

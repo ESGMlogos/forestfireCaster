@@ -1,22 +1,27 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import tkinter as tk
-import random
-import networkx as nx
-from tkinter import ttk, messagebox
 import multiprocessing
 import csv
 import requests
+import os
+import json
+import random
+import networkx as nx
+
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+
 from run_simulations import execute_simulation
 from environment import generate_forest
 from simulation import save_simulation
-from simulation import visualize_simulation
+from simulation import display_heat_map as sim_display_heat_map
 from config import GRID_SIZE
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-import os
-import csv
+
 
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
 
@@ -32,7 +37,7 @@ class FireSimulationApp:
         self.prob_spread = tk.DoubleVar(value=0.1)
         self.wind_direction = tk.StringVar(value="None")
         self.wind_intensity = tk.DoubleVar(value=0.0)
-        self.num_obstacles = tk.IntVar(value=10)
+        self.num_obstacles = tk.IntVar(value=3)
         self.start_date = tk.StringVar(value=(datetime.now() - relativedelta(years=33)).strftime("%Y-%m-%d"))
         self.end_date = tk.StringVar(value=(datetime.now() - relativedelta(years=33) + timedelta(days=9)).strftime("%Y-%m-%d"))
         self.location = tk.StringVar()
@@ -78,7 +83,13 @@ class FireSimulationApp:
         self.new_location_latitude = tk.StringVar(value="")
         self.new_location_longitude = tk.StringVar(value="")
 
-        print("he llegado aqui 7")
+        self.general_params = ["num_simulations", "num_iterations", "prob_spread", "wind_direction", "wind_intensity", "num_obstacles", "start_date", "end_date", "location", "display_simulations", "auto_close_simulations", "custom_csv_name", "csv_name", "simulation_mode"]
+        self.headers = ["Simulation", "Burnt Trees", "Iterations to Extinguish", "Max Fire Size"]
+
+        self.weather_info = None
+
+
+        self.heat_map_canvas = None
 
         # Crear formulario
         self.create_widgets()
@@ -245,6 +256,13 @@ class FireSimulationApp:
 
         self.weather_info_label = ttk.Label(weather_info_frame, text="", font=("Helvetica", 10))
         self.weather_info_label.grid(row=0, column=0, sticky="w")
+
+        # Heat Map Block
+        self.heat_map_frame = ttk.LabelFrame(right_frame, text="Heat Map", padding=10)
+        self.heat_map_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+
+        self.heat_map_canvas = None  # Placeholder for the heatmap canvas
+
 
         # Simulation Results Block
         results_frame = ttk.LabelFrame(right_frame, text="Simulation Results", padding=10)
@@ -447,8 +465,12 @@ class FireSimulationApp:
         # Save results
         self.display_results(results, params)
         self.save_results(results, params, last_iteration_folder, image_folder,G)
+        name= params["csv_name"]
+        self.result_label.config(text=f"Simulations completed. Results saved in {name}.csv")
 
-        self.result_label.config(text="Simulations completed. Results saved in results.csv")
+        heat_map_file_name = os.path.join(simulation_folder, f"heat_map_{name}.png") 
+        self.display_heat_map(params["csv_name"],G,heat_map_file_name)
+
         messagebox.showinfo("Success", "Simulations completed!")
 
     def get_location_coordinates(self, location_name):
@@ -459,21 +481,36 @@ class FireSimulationApp:
                     return float(row[1]), float(row[2])
         return None, None
 
+    def display_heat_map(self, csv_name,forest, savePath):
+        # Get the figure and axes from the simulation's display_heat_map function
+        fig, ax = sim_display_heat_map(csv_name,forest,savePath,True)
+
+        # # Embed the heat map in the Tkinter canvas
+        # if self.heat_map_canvas:
+        #     self.heat_map_canvas.get_tk_widget().destroy()  # Remove the previous canvas if it exists
+
+        # self.heat_map_canvas = FigureCanvasTkAgg(fig, master=self.heat_map_frame)
+        # self.heat_map_canvas.draw()
+        # self.heat_map_canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+
+        # # Adjust the layout
+        # self.heat_map_frame.grid_rowconfigure(0, weight=1)
+        # self.heat_map_frame.grid_columnconfigure(0, weight=1)
 
     def save_results(self, results, params, last_iteration_folder, image_folder,forest):
-
-        general_params = ["num_simulations", "num_iterations", "prob_spread", "wind_direction", "wind_intensity", "num_obstacles", "start_date", "end_date", "location", "display_simulations", "auto_close_simulations", "custom_csv_name", "csv_name", "simulation_mode"]
-        headers = ["Simulation", "Burnt Trees", "Iterations to Extinguish", "Max Fire Size"]
-
+        general_params = self.general_params
+        headers = self.headers
+        data = []
+        for result in results:
+            data.append(result['results'])
         for result in results:
             output, final_forest = result["results"], result["Finalforest"]
             simulation_id = output[0]        
             # Save final iteration
-            final_iteration_file = os.path.join(last_iteration_folder, f"final_iteration_{simulation_id}.csv")
+            final_forest_str_keys = {str(key): value for key, value in final_forest.items()}
+            final_iteration_file = os.path.join(last_iteration_folder, f"final_iteration_{simulation_id}.txt")
             with open(final_iteration_file, "w", newline="") as f:
-                writer = csv.writer(f)
-                for row in final_forest:
-                    writer.writerow(row)
+                json.dump(final_forest_str_keys, f)
 
             # Save image of the last simulation
             image_file = os.path.join(image_folder, f"simulation_{simulation_id}.png")
@@ -500,17 +537,19 @@ class FireSimulationApp:
                     writer.writerow([key, value])
             writer.writerow([])  # Add an empty row for separation
             writer.writerow(headers)
-            writer.writerows(results)
+            writer.writerows(data)
 
         self.result_label.config(text="Simulations completed. Results saved in results.csv")
         messagebox.showinfo("Success", "Simulations result saved on the csv file!")
 
 
     def display_results(self,results, params):
-                # Clear the existing results section
+        general_params = self.general_params
+        headers = self.headers
+        # Clear the existing results section
         data = []
         for result in results:
-            data.append(result)
+            data.append(result['results'])
 
         for widget in self.result_frame.winfo_children():
             widget.destroy()
@@ -518,35 +557,35 @@ class FireSimulationApp:
         # Display the parameters in three columns: General, Hourly, Daily
         ttk.Label(self.result_frame, text="Simulation Parameters", font=("Helvetica", 12, "bold")).grid(row=0, column=0, columnspan=6, pady=10)
 
-        # General Parameters
-        ttk.Label(self.result_frame, text="General Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=0, columnspan=2, pady=5)
-        general_params = ["num_simulations", "num_iterations", "prob_spread", "wind_direction", "wind_intensity", "num_obstacles", "start_date", "end_date", "location", "display_simulations", "auto_close_simulations", "custom_csv_name", "csv_name", "simulation_mode"]
-        for i, key in enumerate(general_params):
-            if key in params:
-                ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=0, sticky="e")
-                ttk.Label(self.result_frame, text=f"{params[key]}").grid(row=2+i, column=1, sticky="w")
+        # # General Parameters
+        # ttk.Label(self.result_frame, text="General Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=0, columnspan=2, pady=5)
+        
+        # for i, key in enumerate(general_params):
+        #     if key in params:
+        #         ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=0, sticky="e")
+        #         ttk.Label(self.result_frame, text=f"{params[key]}").grid(row=2+i, column=1, sticky="w")
 
-        # Hourly Parameters
-        if params["simulation_mode"] == "hourly":
-            ttk.Label(self.result_frame, text="Hourly Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=2, columnspan=2, pady=5)
-            for i, (key, value) in enumerate(params["hourly_params"].items()):
-                ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=2, sticky="e")
-                ttk.Label(self.result_frame, text=f"{value}").grid(row=2+i, column=3, sticky="w")
+        # # Hourly Parameters
+        # if params["simulation_mode"] == "hourly":
+        #     ttk.Label(self.result_frame, text="Hourly Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=2, columnspan=2, pady=5)
+        #     for i, (key, value) in enumerate(params["hourly_params"].items()):
+        #         ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=2, sticky="e")
+        #         ttk.Label(self.result_frame, text=f"{value}").grid(row=2+i, column=3, sticky="w")
 
-        # Daily Parameters
-        if params["simulation_mode"] == "daily":
-            ttk.Label(self.result_frame, text="Daily Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=4, columnspan=2, pady=5)
-            for i, (key, value) in enumerate(params["daily_params"].items()):
-                ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=4, sticky="e")
-                ttk.Label(self.result_frame, text=f"{value}").grid(row=2+i, column=5, sticky="w")
+        # # Daily Parameters
+        # if params["simulation_mode"] == "daily":
+        #     ttk.Label(self.result_frame, text="Daily Parameters", font=("Helvetica", 10, "bold")).grid(row=1, column=4, columnspan=2, pady=5)
+        #     for i, (key, value) in enumerate(params["daily_params"].items()):
+        #         ttk.Label(self.result_frame, text=f"{key.replace('_', ' ').title()}:").grid(row=2+i, column=4, sticky="e")
+        #         ttk.Label(self.result_frame, text=f"{value}").grid(row=2+i, column=5, sticky="w")
 
         # Display the results
         ttk.Label(self.result_frame, text="Simulation Results", font=("Helvetica", 12, "bold")).grid(row=len(general_params)+2, column=0, columnspan=6, pady=10)
-        headers = ["Simulation", "Burnt Trees", "Iterations to Extinguish", "Max Fire Size"]
+        
         for j, header in enumerate(headers):
             ttk.Label(self.result_frame, text=header, font=("Helvetica", 10, "bold")).grid(row=len(general_params)+3, column=j, padx=5, pady=5)
 
-        for i, result in enumerate(results):
+        for i, result in enumerate(data):
             for j, value in enumerate(result):
                 ttk.Label(self.result_frame, text=value).grid(row=len(general_params)+4+i, column=j, padx=5, pady=5)
 

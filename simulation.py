@@ -5,8 +5,12 @@ import matplotlib.animation as animation
 import random
 import time
 from calculation import calculate_specific_probability
+from analytics import collect_final_forests, generate_heat_map
 
 EMPTY, TREE, FIRE, ASH = 0, 1, 2, 3
+EMPTY_COLOR, TREE_COLOR, FIRE_COLOR, ASH_COLOR = "white", "green", "red", "black"
+EDGE_COLOR = "brown"
+
 G = None
 states = None
 spread = None
@@ -46,11 +50,11 @@ def visualize_simulation(history, G, id, params, weather_data=None, save_path=No
 
     def update(frame):
         ax.clear()
-        colors = ["grey" if history[frame][node] == EMPTY else
-                  "green" if history[frame][node] == TREE else
-                  "red" if history[frame][node] == FIRE else "black"
+        colors = [EMPTY_COLOR if history[frame][node] == EMPTY else
+                  TREE_COLOR if history[frame][node] == TREE else
+                  FIRE_COLOR if history[frame][node] == FIRE else ASH_COLOR
                   for node in G.nodes()]
-        nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
+        nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color=EDGE_COLOR, ax=ax)
         ax.set_title(f"Step {frame + 1} Simulation {id + 1}")
 
         # Display weather parameters
@@ -86,16 +90,52 @@ def visualize_simulation(history, G, id, params, weather_data=None, save_path=No
 
 def save_simulation(history, G, id, save_path=None):
     # Create a new figure for the last frame
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(16, 14))
     pos = {(x, y): (y, -x) for x, y in G.nodes()}
-    colors = ["grey" if history[-1][node] == EMPTY else
-              "green" if history[-1][node] == TREE else
-              "red" if history[-1][node] == FIRE else "black"
+    colors = [EMPTY_COLOR if history[-1][node] == EMPTY else
+              TREE_COLOR if history[-1][node] == TREE else
+              FIRE_COLOR if history[-1][node] == FIRE else ASH_COLOR
               for node in G.nodes()]
-    nx.draw(G, pos=pos, node_color=colors, node_size=100, edge_color="gray", ax=ax)
-    ax.set_title(f"Final State Simulation {id + 1}")
+    nx.draw(G, pos=pos, node_color=colors, node_size=306, edge_color=EDGE_COLOR, ax=ax)
+    ax.set_title(f"Final State Simulation {id}", fontsize=36)
 
     # Save the plot
     if save_path:
         plt.savefig(save_path)
+    plt.close()
+
+
+def display_heat_map(csv_name, forest, save_path,plotShow=None):
+    # Collect final forests
+    final_forests = collect_final_forests(csv_name)
+
+    # Generate heat map
+    heat_map = generate_heat_map(final_forests)
+    print("final forest")
+    print(heat_map)
+
+    #save heat map
+    save_heatmap(csv_name,heat_map, forest,save_path)
+
+    # Create a new figure for the heat map
+    fig, ax = plt.subplots(figsize=(10, 7))
+    pos = {(x, y): (y, -x) for x, y in forest.nodes()}  # Ensure pos includes all nodes in the forest
+    colors = [heat_map.get(node, 0) for node in forest.nodes()]  # Use 0 for nodes not in heat_map
+    nx.draw(forest, pos=pos, node_color=colors, node_size=100, edge_color=EDGE_COLOR, ax=ax, cmap=plt.cm.seismic)
+    ax.set_title(f"Heat Map of Burnt Nodes for {csv_name}", fontsize=18)
+
+    # Display the heat map
+    if plotShow:
+        plt.show()
+
+    return fig, ax
+def save_heatmap(csv_name,heat_map, forest,save_path):
+
+    # Create a new figure for the heat map
+    fig, ax = plt.subplots(figsize=(16, 14))
+    pos = {(x, y): (y, -x) for x, y in forest.nodes()}  # Ensure pos includes all nodes in the forest
+    colors = [heat_map.get(node, 0) for node in forest.nodes()]  # Use 0 for nodes not in heat_map
+    nx.draw(forest, pos=pos, node_color=colors, node_size=306, edge_color=EDGE_COLOR, ax=ax, cmap=plt.cm.seismic)
+    ax.set_title(f"Heat Map of Burnt Nodes for {csv_name}", fontsize=36)
+    plt.savefig(save_path)
     plt.close()
