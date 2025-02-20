@@ -1,6 +1,6 @@
 
 # Sise of the Forest
-GRID_SIZE = (33, 33)
+GRID_SIZE = (10, 10)
 
 # Fire spread Factors
 BASE_SPREAD_PROB = 0.3
@@ -23,3 +23,5 @@ GARBAGE_INTENSITY = {
 
 # The fire shall start in more than one place, by now this is a constant. 
 INITIAL_FIRE_POINTS = 3
+
+K=0.8

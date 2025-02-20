@@ -10,12 +10,12 @@ def execute_simulation(simulation_id, forest, forest_state, params, wheather_dat
     Retorna:
         (id, árboles quemados, iteraciones hasta apagarse, iteraciones hasta quemar todo, tamaño del incendio más grande)
     """
-    history = simulation.run_simulation(forest, forest_state, params["prob_spread"], params["num_iterations"],wheather_data)
+    history, history_prob = simulation.run_simulation(forest, forest_state, params["prob_spread"], params["num_iterations"],wheather_data,params)
     
     output = getAnalysisFromResult(history)
     
     if params["display_simulations"]: 
-        simulation.visualize_simulation(history,forest,simulation_id,params,wheather_data)
+        simulation.visualize_simulation(history,forest,simulation_id,params,wheather_data,history_prob)
     
 
     return {

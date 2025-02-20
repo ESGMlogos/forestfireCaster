@@ -47,3 +47,14 @@ def generateItemsInForest(grid_size,states, itemType, amount,coordenates=None):
         states[initial_fire] = itemType
     return states
 
+def getWeatherDataIteration(weather_data,type,params,iteration):
+    weather_data_iteration = {}
+    
+    if type in ["hourly", "daily"]:
+        time_index = iteration % len(weather_data["hourly"]["time"])
+        weather_data_iteration["time"] = weather_data[type]["time"][time_index]
+        for param, selected in params.items():
+            if selected:
+                weather_data_iteration[param] = weather_data[type][param][time_index]
+
+    return weather_data_iteration
